@@ -6,3 +6,6 @@ class AppState:
         self.joy_center = None
         self.last_hx = None
         self.last_hy = None
+        self.last_gesture = "NONE"
+        self.gesture_frames = 0
+        self.MIN_GESTURE_FRAMES = 12

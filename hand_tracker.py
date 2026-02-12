@@ -4,6 +4,7 @@ from gesture_control import smooth_landmarks
 mp_hands = mp.solutions.hands
 mp_face = mp.solutions.face_detection
 
+
 hands = mp_hands.Hands(
     max_num_hands=1,
     model_complexity=0,

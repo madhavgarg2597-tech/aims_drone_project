@@ -1,17 +1,14 @@
 import mediapipe as mp
 
 mp_hands = mp.solutions.hands
-
-# ---------------- GLOBAL STATE ----------------
 prev_gesture = ""
 gesture_count = 0
 STABLE_FRAMES = 8
 
 prev_landmarks = None
-SMOOTHING = 0.6
+SMOOTHING = 0.75
 
 
-# ---------------- LANDMARK SMOOTHING ----------------
 def smooth_landmarks(hand_landmarks):
     global prev_landmarks
 
@@ -33,12 +30,12 @@ def smooth_landmarks(hand_landmarks):
     return hand_landmarks
 
 
-# ---------------- FINGER STATE ----------------
+
 def fingers_up(hand_landmarks, hand_label):
     tips = [4, 8, 12, 16, 20]
     fingers = []
 
-    # Thumb
+    
     if hand_label == "Right":
         fingers.append(
             1 if hand_landmarks.landmark[4].x <
@@ -50,7 +47,7 @@ def fingers_up(hand_landmarks, hand_label):
             hand_landmarks.landmark[3].x else 0
         )
 
-    # Other fingers
+    
     for i in range(1, 5):
         fingers.append(
             1 if hand_landmarks.landmark[tips[i]].y <
@@ -60,7 +57,7 @@ def fingers_up(hand_landmarks, hand_label):
     return fingers
 
 
-# ---------------- HAND ORIENTATION ----------------
+
 def hand_orientation(hand_landmarks):
     wrist_z = hand_landmarks.landmark[
         mp_hands.HandLandmark.WRIST
@@ -70,40 +67,37 @@ def hand_orientation(hand_landmarks):
         mp_hands.HandLandmark.MIDDLE_FINGER_MCP
     ].z
 
-    # Palm facing camera → wrist is closer
-    # Back of hand → middle MCP is closer
     if wrist_z < middle_mcp_z:
         return "PALM"
     else:
         return "BACK"
 
 
-# ---------------- GESTURE DETECTION ----------------
+
 def detect_gesture(hand_landmarks, label, w, h):
     global prev_gesture, gesture_count
 
     fingers = fingers_up(hand_landmarks, label)
     pattern = fingers[1:]  # index, middle, ring, pinky
 
-    # -------- PEACE SIGN (NO STABILITY) --------
+
     if pattern == [1, 1, 0, 0]:
         return "PEACE"
 
     gesture = "NONE"
 
-    # -------- FIST --------
+
     if fingers == [0, 0, 0, 0, 0]:
         gesture = "TAKEOFF" if label == "Right" else "LAND"
 
-    # -------- STOP (OPEN PALM) --------
+
     elif pattern == [1, 1, 1, 1]:
         gesture = "STOP"
 
-    # -------- RIGHT (INDEX) --------
     elif pattern == [1, 0, 0, 0]:
         gesture = "RIGHT"
 
-    # ---------- MIDDLE FINGER EXIT ----------
+
     elif fingers == [0, 0, 1, 0, 0]:
         orientation = hand_orientation(hand_landmarks)
 
@@ -112,15 +106,14 @@ def detect_gesture(hand_landmarks, label, w, h):
         else:
             return "NONE"
 
-    # -------- LEFT (PINKY) --------
+
     elif pattern == [0, 0, 0, 1]:
         gesture = "LEFT"
 
-    # -------- FLIP (INDEX + PINKY) --------
     elif pattern == [1, 0, 0, 1]:
         gesture = "FLIP"
 
-    # -------- STABILITY FILTER --------
+   
     if gesture == prev_gesture:
         gesture_count += 1
     else:
